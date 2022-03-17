@@ -19,6 +19,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.ElkRectangle;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
@@ -380,7 +381,7 @@ public final class ElkUtil {
         if (scalingFactor == 1) {
             return;
         }
-
+        
         node.setDimensions(scalingFactor * node.getWidth(), scalingFactor * node.getHeight());
 
         final Iterable<ElkLabel> portLabels = Iterables.concat(
@@ -395,6 +396,49 @@ public final class ElkUtil {
                 anchor.y *= scalingFactor;
             }
         }
+    }
+    
+    /**
+     * Computes the area occupied by this node's layout and stores the values in {@link CoreOptions#CHILD_AREA_WIDTH} 
+     * and {@link CoreOptions#CHILD_AREA_HEIGHT}.
+     * @param node the node whose child area should be computed
+     */
+    public static void computeChildAreaDimensions(final ElkNode node) {
+        // iterate over all nodes and get their coordinate bounds
+        
+        double minX = Double.MAX_VALUE;
+        double minY = Double.MAX_VALUE;
+        double maxX = 0.0;
+        double maxY = 0.0;
+        
+        for (ElkNode child : node.getChildren()) {
+            
+            if (minX > child.getX()) {
+                minX = child.getX();
+            }
+            if (minY > child.getY()) {
+                minY = child.getY();
+            }
+            if (maxX < child.getX() + child.getWidth()) {
+                maxX = child.getX() + child.getWidth(); 
+            }
+            if (maxY < child.getY() + child.getHeight()) {
+                maxY = child.getY() + child.getHeight(); 
+            }
+        }
+
+        
+        node.setProperty(CoreOptions.CHILD_AREA_WIDTH, maxX - minX);
+        node.setProperty(CoreOptions.CHILD_AREA_HEIGHT, maxY - minY);
+    }
+    
+    public static ElkPadding scaledPadding(ElkPadding padding, double scale) {
+        ElkPadding newPadding = new ElkPadding();
+        newPadding.left = padding.left * scale;
+        newPadding.bottom = padding.bottom * scale;
+        newPadding.right = padding.right * scale;
+        newPadding.top = padding.top * scale;
+        return newPadding;
     }
 
     /**

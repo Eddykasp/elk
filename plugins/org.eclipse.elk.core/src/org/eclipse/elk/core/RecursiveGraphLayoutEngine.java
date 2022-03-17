@@ -12,12 +12,13 @@ package org.eclipse.elk.core;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
-
 import org.eclipse.elk.core.data.DeprecatedLayoutOptionReplacer;
 import org.eclipse.elk.core.data.LayoutAlgorithmData;
 import org.eclipse.elk.core.data.LayoutAlgorithmResolver;
+import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.HierarchyHandling;
+import org.eclipse.elk.core.options.TopdownNodeTypes;
 import org.eclipse.elk.core.testing.TestController;
 import org.eclipse.elk.core.util.ElkUtil;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
@@ -101,6 +102,9 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
     /**
      * Recursive function to enable layout of hierarchy. The leafs are laid out first to use their
      * layout information in the levels above.
+     * 
+     * If the 'Topdown Layout' option is enabled, root nodes are laid out first and inner layouts are scaled down
+     * so the respective parent nodes can accommodate their children.
      * 
      * <p>This method returns self loops routed inside the given layout node. Those will have
      * coordinates relative to the node's top left corner, which is incorrect. Once the node's
@@ -194,13 +198,143 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                 }
 
             } else {
-                // Layout each compound node contained in this node separately
                 nodeCount = layoutNode.getChildren().size();
+                // If performing topdown layout, layout this node first, then compute scale factors and layout children
+                // recursively
+                if (layoutNode.hasProperty(CoreOptions.TOPDOWN_LAYOUT) 
+                        && layoutNode.getProperty(CoreOptions.TOPDOWN_LAYOUT)) {
+                                                            
+                    IElkProgressMonitor topdownLayoutMonitor = progressMonitor.subTask(1);
+                    topdownLayoutMonitor.begin("Topdown Layout", 1);
+                    ElkPadding padding = layoutNode.getProperty(CoreOptions.PADDING);
+                    double nodeNodeSpacing = layoutNode.getProperty(CoreOptions.SPACING_NODE_NODE);
+                    
+                    // set state size of root node(s)
+                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
+                        // for theoretical multiple root nodes
+                        for (ElkNode rootNode : layoutNode.getChildren()) {
+                            // TODO: here this calculation also needs to be switchable depending on the layout 
+                            //       algorithm used for the parallel nodes
+                            double hierarchicalNodeWidth = rootNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
+                            double hierarchicalNodeAspectRatio = rootNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO);
+                            
+                            int cols = (int) Math.ceil(Math.sqrt(rootNode.getChildren().size()));
+                            double requiredWidth = cols * hierarchicalNodeWidth + padding.left + padding.right + (cols - 1)*nodeNodeSpacing; 
+                            double requiredHeight = cols * hierarchicalNodeWidth/hierarchicalNodeAspectRatio + padding.top + padding.bottom + (cols - 1)*nodeNodeSpacing;
+                            rootNode.setDimensions(requiredWidth, requiredHeight);
+                        }
+                    }
+                    
+                    // if we are currently in a region and about to produce a layered layout,
+                    // then we need to step through the states and set the sizes of the states
+                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.HIERARCHICAL_NODE)) {
+                        for (ElkNode parallelNode : layoutNode.getChildren()) {
+                            // check if child has children, if yes its size needs to be pre-computed before computing the layout
+                            if (parallelNode.getChildren().size() > 0) {
+                                // TODO: predict required size of node depending on the algorithm that will be used
+                                // what is here now is specific to topdownpacking, and this should be externalized and included with the 
+                                // algorithms, this will result in clearly defined support of topdown layout by the algorithms
+                                // TODO: design sensible mechanism to facilitate this switching
+                                double hierarchicalNodeWidth = parallelNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
+                                double hierarchicalNodeAspectRatio = parallelNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO);
+                                
+                                int cols = (int) Math.ceil(Math.sqrt(parallelNode.getChildren().size()));
+                                double requiredWidth = cols * hierarchicalNodeWidth + padding.left + padding.right + (cols - 1)*nodeNodeSpacing; 
+                                double requiredHeight = cols * hierarchicalNodeWidth/hierarchicalNodeAspectRatio + padding.top + padding.bottom + (cols - 1)*nodeNodeSpacing;
+                                parallelNode.setDimensions(requiredWidth, requiredHeight);
+                            }
+                        }
+                    }
+                        
+                    executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+
+                    topdownLayoutMonitor.log("Executed layout algorithm: " 
+                            + layoutNode.getProperty(CoreOptions.ALGORITHM)
+                            + " on node " + layoutNode.getIdentifier());
+                    System.out.println("Executed layout algorithm: " 
+                            + layoutNode.getProperty(CoreOptions.ALGORITHM)
+                            + " on node " + layoutNode.getIdentifier());
+                    System.out.println(layoutNode.getChildren().get(0).getIdentifier() + " " + layoutNode.getChildren().get(0).getWidth());
+                    
+                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.HIERARCHICAL_NODE)) {
+
+                        // TODO: the calculation of available area is definitely having issues
+                        // padding is handled on layout algorithm level, we do not need to take it into account here
+                        // apparently padding is sometimes handled in different ways)
+                        double childAreaAvailableWidth = layoutNode.getWidth() - padding.left - padding.right;
+                        double childAreaAvailableHeight = layoutNode.getHeight() - padding.top - padding.bottom;
+                        topdownLayoutMonitor.log("Available Child Area: (" + childAreaAvailableWidth + "|" + childAreaAvailableHeight + ")");
+                        System.out.println("Available Child Area: (" + childAreaAvailableWidth + "|" + childAreaAvailableHeight + ")");
+                        
+                        
+                        // check whether child area has been set, and if it hasn't run the util function to determine area
+                        if (!(layoutNode.hasProperty(CoreOptions.CHILD_AREA_WIDTH) 
+                                || layoutNode.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
+                            // compute child area if it hasn't been set by the layout algorithm
+                            ElkUtil.computeChildAreaDimensions(layoutNode);
+                        }
+                        
+                        double childAreaDesiredWidth = layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH);
+                        double childAreaDesiredHeight = layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT);
+                        // This desired child area is wrong, probably because the sizes are set and reset somewhere else
+                        // this causes the weird large scalings in places where they should be smaller than 1
+                        topdownLayoutMonitor.log("Desired Child Area: (" + childAreaDesiredWidth + "|" + childAreaDesiredHeight + ")");
+                        System.out.println("Desired Child Area: (" + childAreaDesiredWidth + "|" + childAreaDesiredHeight + ")");
+                        
+                        // compute scaleFactor
+                        double scaleFactorX = childAreaAvailableWidth/childAreaDesiredWidth;
+                        double scaleFactorY = childAreaAvailableHeight/childAreaDesiredHeight;
+                        // TODO: eventually the scale factor should always be capped at one, because we want to avoid upscaling
+                        //double scaleFactor = Math.min(scaleFactorX, Math.min(scaleFactorY, 1)); // restrict to 1 to see what happens
+                        double scaleFactor = Math.min(scaleFactorX, scaleFactorY);
+                        layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, scaleFactor);
+                        // Below line for testing rendering
+                        // layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, 0.5);
+                        topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" + scaleFactorX + "|" + scaleFactorY + ")");
+                        System.out.println(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" + scaleFactorX + "|" + scaleFactorY + ")");
+                        
+                        // TODO: fix the calculation
+                        // compute translation vector to keep children centered in child area, 
+                        // this is necessary because the aspect ratio is not the same as the parent aspect ratio
+                        double xShift = 0;
+                        double yShift = 0;
+                        if (scaleFactorX > scaleFactorY) {
+                            // horizontal shift necessary
+                            // TODO: still a little off, maybe need to consider padding here
+                            xShift = 0.5 * (childAreaAvailableWidth - childAreaDesiredWidth * scaleFactorY);
+                        } else {
+                            // vertical shift necessary
+                            yShift = 0.5 * (childAreaAvailableHeight - childAreaDesiredHeight * scaleFactorX);
+                        }
+                        topdownLayoutMonitor.log("Shift: (" + xShift + "|" + yShift + ")");
+                        for (ElkNode node : layoutNode.getChildren()) {
+                            // topdownLayoutMonitor.log(node.getX());
+                            // shift all nodes in layout
+                            node.setX(node.getX() + xShift);
+                            node.setY(node.getY() + yShift); // this doesn't shift the edges, a translation of the whole part of the svg during rendering is probably the better way to do it
+                        }
+                        
+                        // log child sizes
+                        // TODO: remove this logging
+                        /**
+                        for (ElkNode node : layoutNode.getChildren()) {
+                            topdownLayoutMonitor.log(node.getIdentifier() + ": (" + node.getWidth() + "|" + node.getHeight() + ")");
+                            System.out.println(node.getIdentifier() + ": (" + node.getWidth() + "|" + node.getHeight() + ")");
+                        }
+                        */
+                    }
+                    topdownLayoutMonitor.done();
+                } else {
+                    layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, 1.0);
+                }
+                
+                // Layout each compound node contained in this node separately
                 for (ElkNode child : layoutNode.getChildren()) {
                     List<ElkEdge> childLayoutSelfLoops = layoutRecursively(child, testController, progressMonitor); 
                     childrenInsideSelfLoops.addAll(childLayoutSelfLoops);
                     
                     // Apply the LayoutOptions.SCALE_FACTOR if present
+                    // TODO: temporary disable here
                     ElkUtil.applyConfiguredNodeScaling(child);
                 }
             }
@@ -215,7 +349,10 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                 selfLoop.setProperty(CoreOptions.NO_LAYOUT, true);
             }
 
-            executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+            if (!layoutNode.hasProperty(CoreOptions.TOPDOWN_LAYOUT) 
+                    || !layoutNode.getProperty(CoreOptions.TOPDOWN_LAYOUT)) {
+                executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+            }
             
             // Post-process the inner self loops we collected
             postProcessInsideSelfLoops(childrenInsideSelfLoops);

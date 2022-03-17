@@ -825,6 +825,78 @@ programmatic option scaleFactor: double {
 // requires hierarchyHandling != HierarchyHandling.INCLUDE_CHILDREN 
 }
 
+option topdownLayout: boolean {
+    label "Topdown Layout"
+    description
+        "Turns topdown layout on and off. If this option is enabled, hierarchical layout will be computed first for
+         the root node and then for its children recursively. Layouts are then scaled down to fit the area provided by
+         their parents."
+    default = false
+}
+
+group topdown {
+    programmatic option scaleFactor: double {
+        label "Topdown Scale Factor"
+        description
+            "The scaling factor to be applied to the nodes laid out within the node in recursive topdown
+             layout. The difference to 'Scale Factor' is that the node itself is not scaled. This value has to be set on 
+             hierarchical nodes."
+        lowerBound = ExclusiveBounds.greaterThan(0)
+        default = 1
+        targets parents
+        requires nodeType == TopdownNodeTypes.HIERARCHICAL_NODE
+    }
+    
+    advanced option hierarchicalNodeWidth: double {
+        label "Topdown Hierarchical Node Width"
+        description
+            "The fixed size of a hierarchical node when using topdown layout. This value has to be set on parallel 
+             nodes."
+        default = 100
+        targets parents
+        requires nodeType == TopdownNodeTypes.PARALLEL_NODE
+    }
+    
+    advanced option hierarchicalNodeAspectRatio: double {
+        label "Topdown Hierarchical Node Aspect Ratio"
+        description
+            "The fixed aspect ratio of a hierarchical node when using topdown layout. Default is 1:sqrt(2). This value 
+             has to be set on parallel nodes."
+        default = 1.414
+        targets parents
+        requires nodeType == TopdownNodeTypes.PARALLEL_NODE
+    }
+    
+    programmatic option nodeType: TopdownNodeTypes{
+        label "Topdown Node Type"
+        description
+            "The different node types used for topdown layout."
+        default = TopdownNodeTypes.NONE
+        targets nodes
+    }
+}
+
+// TODO: sort options properly
+// TODO: decide whether this is a reasonable demand, or whether it would be easier to add this calculation as a 
+//       post-processing step that can be added after any algorithm
+programmatic option childAreaWidth: double {
+    label "Child Area Width"
+    description
+        "The width of the area occupied by the laid out children of a node. This value is necessary to compute the 
+         correct scale factor in topdown layout and must be computed and set by the layout algorithm. This property must
+         be set for topdown layout to function."
+    targets nodes
+}
+
+programmatic option childAreaHeight: double {
+    label "Child Area Height"
+    description
+        "The height of the area occupied by the laid out children of a node. This value is necessary to compute the 
+         correct scale factor in topdown layout and must be computed and set by the layout algorithm. This property must
+         be set for topdown layout to function."
+    targets nodes
+}
+
 // --- INSIDE SELF LOOPS
 group insideSelfLoops {
 

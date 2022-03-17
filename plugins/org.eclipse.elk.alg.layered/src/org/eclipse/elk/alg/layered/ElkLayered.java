@@ -154,7 +154,10 @@ public final class ElkLayered {
         componentsProcessor.combine(components, lgraph);
 
         // Resize the resulting graph, according to minimal size constraints and such
-        resizeGraph(lgraph);
+        // Disable this only for topdown layout, because graph sizes are set by us
+        if (!lgraph.getProperty(LayeredOptions.NODE_SIZE_FIXED_GRAPH_SIZE)) {
+            resizeGraph(lgraph);
+        }
 
         theMonitor.done();
     }
