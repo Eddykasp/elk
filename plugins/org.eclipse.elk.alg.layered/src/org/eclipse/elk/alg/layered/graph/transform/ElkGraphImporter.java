@@ -16,6 +16,7 @@ import java.util.Queue;
 import java.util.Set;
 
 import org.eclipse.elk.alg.common.nodespacing.NodeLabelAndSizeCalculator;
+import org.eclipse.elk.alg.layered.components.ComponentOrderingStrategy;
 import org.eclipse.elk.alg.layered.graph.LEdge;
 import org.eclipse.elk.alg.layered.graph.LGraph;
 import org.eclipse.elk.alg.layered.graph.LGraphElement;
@@ -225,10 +226,14 @@ class ElkGraphImporter {
         int index = 0;
         for (ElkNode child : elkgraph.getChildren()) {
             if (!child.getProperty(LayeredOptions.NO_LAYOUT)) {
-                if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
+                if ((elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
                         || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
                             == CycleBreakingStrategy.MODEL_ORDER
-                        || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)) {
+                        || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
+                            == CycleBreakingStrategy.GREEDY_MODEL_ORDER
+                        || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)
+                        || elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS) != ComponentOrderingStrategy.NONE)
+                    && !child.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER)) {
                     child.setProperty(InternalProperties.MODEL_ORDER, index);
                     index++;
                 }
@@ -243,7 +248,10 @@ class ElkGraphImporter {
             if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
                     || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
                         == CycleBreakingStrategy.MODEL_ORDER
-                    || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)) {
+                    || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
+                        == CycleBreakingStrategy.GREEDY_MODEL_ORDER
+                    || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)
+                    || elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS) != ComponentOrderingStrategy.NONE) {
                 elkedge.setProperty(InternalProperties.MODEL_ORDER, index);
                 index++;
             }
@@ -304,9 +312,14 @@ class ElkGraphImporter {
         while (!elkGraphQueue.isEmpty()) {
             ElkNode elknode = elkGraphQueue.poll();
             
-            if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
+            if ((elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
                     || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
-                    == CycleBreakingStrategy.MODEL_ORDER) {
+                        == CycleBreakingStrategy.MODEL_ORDER
+                    || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
+                        == CycleBreakingStrategy.GREEDY_MODEL_ORDER
+                    || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)
+                    || elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS) != ComponentOrderingStrategy.NONE)
+                && !elknode.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_NO_MODEL_ORDER)) {
                 // Assign a model order to the nodes as they are read
                 elknode.setProperty(InternalProperties.MODEL_ORDER, index++);
             }
@@ -375,7 +388,11 @@ class ElkGraphImporter {
                 
                 if (elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY) != OrderingStrategy.NONE
                         || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
-                        == CycleBreakingStrategy.MODEL_ORDER) {
+                            == CycleBreakingStrategy.MODEL_ORDER
+                        || elkgraph.getProperty(LayeredOptions.CYCLE_BREAKING_STRATEGY)
+                            == CycleBreakingStrategy.GREEDY_MODEL_ORDER
+                        || elkgraph.getProperty(LayeredOptions.CROSSING_MINIMIZATION_FORCE_NODE_MODEL_ORDER)
+                        || elkgraph.getProperty(LayeredOptions.CONSIDER_MODEL_ORDER_COMPONENTS) != ComponentOrderingStrategy.NONE) {
                     // Assign a model order to the edges as they are read
                     elkedge.setProperty(InternalProperties.MODEL_ORDER, index++);
                 }
