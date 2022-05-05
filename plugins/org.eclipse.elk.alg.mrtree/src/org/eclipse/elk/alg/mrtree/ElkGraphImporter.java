@@ -20,6 +20,7 @@ import org.eclipse.elk.alg.mrtree.options.MrTreeOptions;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.math.KVectorChain;
+import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.util.ElkUtil;
 import org.eclipse.elk.graph.ElkEdge;
 import org.eclipse.elk.graph.ElkEdgeSection;
@@ -194,11 +195,13 @@ public class ElkGraphImporter implements IGraphImporter<ElkNode> {
                 ElkUtil.applyVectorChain(bendPoints, edgeSection);
             }
         }
-
-        // set up the graph
-        double width = maxXPos - minXPos + padding.getHorizontal();
-        double height = maxYPos - minYPos + padding.getVertical();
-        ElkUtil.resizeNode(elkgraph, width, height, false, false);
+        
+        if (!elkgraph.getProperty(CoreOptions.NODE_SIZE_FIXED_GRAPH_SIZE)) {
+            // set up the graph
+            double width = maxXPos - minXPos + padding.getHorizontal();
+            double height = maxYPos - minYPos + padding.getVertical();
+            ElkUtil.resizeNode(elkgraph, width, height, false, false);
+        }
     }
     
     
