@@ -12,12 +12,14 @@ package org.eclipse.elk.core;
 import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 
 import org.eclipse.elk.core.data.DeprecatedLayoutOptionReplacer;
 import org.eclipse.elk.core.data.LayoutAlgorithmData;
 import org.eclipse.elk.core.data.LayoutAlgorithmResolver;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
+import org.eclipse.elk.core.options.ContentAlignment;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.HierarchyHandling;
 import org.eclipse.elk.core.options.TopdownNodeTypes;
@@ -298,6 +300,10 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                         topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" 
                                 + scaleFactorX + "|" + scaleFactorY + ")");
 
+                        // Compute shift according to content alignment
+                        Set<ContentAlignment> contentAlignment = layoutNode.getProperty(CoreOptions.CONTENT_ALIGNMENT);
+                        // TODO: use this to compute shift, necessary because this usually part of the resize step of algorithms
+                        
                         double xShift = padding.left / scaleFactor - padding.left * scaleFactor;
                         double yShift = (padding.top - padding.top * scaleFactor) / scaleFactor;
                         topdownLayoutMonitor.log("Shift: (" + xShift + "|" + yShift + ")");
