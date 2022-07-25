@@ -235,13 +235,38 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                                 TopdownSizeApproximator approximator = 
                                         childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR);
                                 KVector size = approximator.getSize(childNode);
+                                System.out.println("approx: " + childNode.getIdentifier() + " " + size);
+                                System.out.println("pre-size: " + childNode.getWidth() + " " + childNode.getHeight());
                                 childNode.setDimensions(Math.max(childNode.getWidth(), size.x),
                                         Math.max(childNode.getHeight(), size.y));
                             }
                         }
                     }
-                        
+                    // TODO: the problem is that I set sizes and do stuff with them then compute layout
+                    //       which in the case of rectpacking adjusts the sizes again and then I don't
+                    //       check the new sizes
+                    
+                    // TODO: I think rectpacking expands its parents instead of scaling itself down
+                    
+                    // DEBUG: log sizes of all children before executing layout
+                    System.out.println(layoutNode.getIdentifier() + " " + layoutNode.getProperty(CoreOptions.ALGORITHM));
+                    for (ElkNode child : layoutNode.getChildren()) {
+                        System.out.println(child.getIdentifier() + " " + child.getWidth() + " " + child.getHeight());
+                    }
+                    
+                    // DEBUGGING NOTES
+                    // issue could be that rectpacking does whitespace expansion outside of the layout and stuff
+                    // is therefore then done in the wrong order
+                    // -- need to check when that happens
+                    
                     executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+                    
+                    // DEBUG: log sizes of children after layout
+                    System.out.println("----after layout----");
+                    for (ElkNode child : layoutNode.getChildren()) {
+                        System.out.println(child.getIdentifier() + " " + child.getWidth() + " " + child.getHeight());
+                    }
+                    System.out.println("-------------");
                     // root node needs its size to be set manually
                     if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
                         ElkPadding padding = layoutNode.getProperty(CoreOptions.PADDING);
@@ -297,7 +322,10 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                         layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, scaleFactor);
                         topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" 
                                 + scaleFactorX + "|" + scaleFactorY + ")");
+                        System.out.println("scale: " + scaleFactor);
 
+                        // TODO: make this center the diagram according to property
+                        // CONTENT_ALIGNMENT
                         double xShift = padding.left / scaleFactor - padding.left * scaleFactor;
                         double yShift = (padding.top - padding.top * scaleFactor) / scaleFactor;
                         topdownLayoutMonitor.log("Shift: (" + xShift + "|" + yShift + ")");
