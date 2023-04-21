@@ -1,0 +1,46 @@
+/*******************************************************************************
+ * Copyright (c) 2015, 2020 Kiel University and others.
+ * 
+ * This program and the accompanying materials are made available under the
+ * terms of the Eclipse Public License 2.0 which is available at
+ * http://www.eclipse.org/legal/epl-2.0.
+ *
+ * SPDX-License-Identifier: EPL-2.0
+ *******************************************************************************/
+package org.eclipse.elk.alg.komplete
+
+import org.eclipse.elk.alg.komplete.KompleteLayoutProvider
+import org.eclipse.elk.core.math.ElkPadding
+import org.eclipse.elk.core.options.TopdownNodeTypes
+
+/**
+ * Declarations for the ELK Komplete layout algorithm.
+ */
+bundle {
+    metadataClass options.KompleteMetaDataProvider
+    idPrefix org.eclipse.elk.komplete
+}
+
+algorithm komplete(KompleteLayoutProvider) {
+    label "ELK Komplete"
+    description
+        "TODO"
+    metadataClass options.KompleteOptions
+    features multi_edges, edge_labels
+//    preview images/force_layout.png
+    supports org.eclipse.elk.spacing.nodeNode = 80
+    supports org.eclipse.elk.spacing.edgeLabel = 5
+    supports org.eclipse.elk.padding = new ElkPadding(50)
+    supports org.eclipse.elk.interactive
+    supports org.eclipse.elk.portConstraints
+    supports org.eclipse.elk.edgeLabels.inline = false
+
+    supports org.eclipse.elk.nodeSize.fixedGraphSize
+    
+    // topdown layout
+    supports org.eclipse.elk.topdownLayout
+    supports org.eclipse.elk.topdown.scaleFactor
+    supports org.eclipse.elk.topdown.hierarchicalNodeWidth
+    supports org.eclipse.elk.topdown.hierarchicalNodeAspectRatio
+    supports org.eclipse.elk.topdown.nodeType = TopdownNodeTypes.HIERARCHICAL_NODE
+}
