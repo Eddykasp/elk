@@ -870,6 +870,15 @@ advanced option topdownLayout: boolean {
 }
 
 group topdown {
+    advanced option hierarchicalStraightEdge: boolean {
+        label "Hierarchical Straight Edge"
+        description
+            "(Experimental) Marks edges to be ignored during layout and then routed as straight edges later. These edges
+            may cross hierarchies."
+        default = false
+        targets edges
+    }
+    
     programmatic option scaleFactor: double {
         label "Topdown Scale Factor"
         description

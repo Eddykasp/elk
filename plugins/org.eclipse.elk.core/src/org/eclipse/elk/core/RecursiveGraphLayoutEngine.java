@@ -9,8 +9,11 @@
  *******************************************************************************/
 package org.eclipse.elk.core;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -37,6 +40,7 @@ import org.eclipse.elk.graph.ElkNode;
 import org.eclipse.elk.graph.properties.GraphFeature;
 import org.eclipse.elk.graph.util.ElkGraphUtil;
 
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
 /**
@@ -268,7 +272,19 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                     
                     layoutNode.setProperty(CoreOptions.ASPECT_RATIO, 
                             childAreaAvailableWidth / childAreaAvailableHeight);
-                        
+                    
+                    // TODO: remove hierarchical straight edges connected to same or lower hierarchy level
+                    Map<ElkNode, ElkEdge> hierarchicalStraightEdges = new HashMap<>();
+                    List<ElkEdge> normalEdges = new ArrayList<>();
+                    for (ElkEdge edge : layoutNode.getContainedEdges()) {
+                        if (edge.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_STRAIGHT_EDGE)) {
+                            hierarchicalStraightEdges.add(edge);
+                        } else {
+                            
+                        }
+                    }
+                    
+                    
                     executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
                     // root node needs its size to be set manually
                     if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
@@ -383,6 +399,8 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                             edge.setProperty(CoreOptions.JUNCTION_POINTS, junctionPoints);
                         }
                     }
+                    
+                    // TODO: add hierarchical straight edges back in and route them in a straight line 
                     topdownLayoutMonitor.done();
                 }
                 
