@@ -847,6 +847,15 @@ programmatic option childAreaHeight: double {
     targets parents
 }
 
+option initialAngle: double {
+    label "Initial Angle"
+    description
+        "The initial angle to start the placement of the nodes of. Default is 0. Can be used to rotate the entire
+         layout."
+    default = 0
+    targets parents
+}
+
 advanced option topdownLayout: boolean {
     label "Topdown Layout"
     description
@@ -936,6 +945,21 @@ group topdown {
         targets parents
         default = 1
         requires nodeType == TopdownNodeTypes.HIERARCHICAL_NODE
+    }
+    
+    group processors {
+        option radialEdgeRotation: boolean {
+            label "Radial Edge Rotation"
+            description
+                "When enabled sets the Radial layout option Initial Angle this node such that the incoming edge from a 
+                 higher level can land between the radially placed nodes of the node. The following conditions must hold 
+                 for this option to be valid. The parent node G of the node setting this option must be laid out using 
+                 radial layout. This node must also be laid out using radial layout. The entire layout must be performed 
+                 as a top-down layout."
+            targets nodes
+            default = false
+            requires topdownLayout == true
+        }
     }
 }
 

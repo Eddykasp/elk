@@ -268,8 +268,81 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                     
                     layoutNode.setProperty(CoreOptions.ASPECT_RATIO, 
                             childAreaAvailableWidth / childAreaAvailableHeight);
+                    
+                    
+                    // TODO: TOPDOWN PREPROCESSORS HOOK IN HERE
+                    if (false && layoutNode.getProperty(CoreOptions.TOPDOWN_PROCESSORS_RADIAL_EDGE_ROTATION)) {
+                        // catch invalid configurations
+                        if (layoutNode.getProperty(CoreOptions.ALGORITHM) != "org.eclipse.elk.radial") {//|| layoutNode.getParent().getProperty(CoreOptions.ALGORITHM) != "org.eclipse.elk.radial") {
+                            System.out.println(layoutNode.getIdentifier() + ": " + layoutNode.getProperty(CoreOptions.ALGORITHM) + " " + layoutNode.getParent().getProperty(CoreOptions.ALGORITHM));
+                            throw new UnsupportedConfigurationException("The node (" + layoutNode.getIdentifier() + ") and its parent (" + layoutNode.getParent().getIdentifier() + ") both set their layout algorithm to 'org.eclipse.elk.radial'.");
+                        }
+                        // get incoming edge angle
+                        // if there is not exactly one incoming edge then the graph was misconfigured, the property cannot be set on the root of a radial layout
+                        try {
+                            ElkEdge incomingEdge = layoutNode.getIncomingEdges().get(0);
+                            // assume simple single section edge, in valid configurations this is the case
+                            double dy = incomingEdge.getSections().get(0).getEndX() - incomingEdge.getSections().get(0).getStartX();
+                            double dx = incomingEdge.getSections().get(0).getEndY() - incomingEdge.getSections().get(0).getStartY();
+                            double angle = (Math.atan2(dy, dx)*180/Math.PI + 720 - 270) % 360;
+                            System.out.println(angle);
+                            layoutNode.setProperty(CoreOptions.INITIAL_ANGLE, angle);
+                        } catch (Exception e) {
+                            // continue
+                        }
                         
+                    }
+                    // TODO: above block should be externalised to some sensible general architecture
                     executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+                    // TODO: TOPDOWN POSTPROCESSORS HOOK IN HERE
+                    // try post processing approach, rotate layout after it is done
+                    
+                    // STUPID STUFF HAPPENS HERE
+                    
+                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_PROCESSORS_RADIAL_EDGE_ROTATION)) {
+                        // catch invalid configurations
+                        if (layoutNode.getProperty(CoreOptions.ALGORITHM) != "org.eclipse.elk.radial") {//|| layoutNode.getParent().getProperty(CoreOptions.ALGORITHM) != "org.eclipse.elk.radial") {
+                            System.out.println(layoutNode.getIdentifier() + ": " + layoutNode.getProperty(CoreOptions.ALGORITHM) + " " + layoutNode.getParent().getProperty(CoreOptions.ALGORITHM));
+                            throw new UnsupportedConfigurationException("The node (" + layoutNode.getIdentifier() + ") and its parent (" + layoutNode.getParent().getIdentifier() + ") both set their layout algorithm to 'org.eclipse.elk.radial'.");
+                        }
+                        // get incoming edge angle
+                        // if there is not exactly one incoming edge then the graph was misconfigured, the property cannot be set on the root of a radial layout
+                        try {
+                            ElkEdge incomingEdge = layoutNode.getIncomingEdges().get(0);
+                            // assume simple single section edge, in valid configurations this is the case
+                            double dy = incomingEdge.getSections().get(0).getEndX() - incomingEdge.getSections().get(0).getStartX();
+                            double dx = incomingEdge.getSections().get(0).getEndY() - incomingEdge.getSections().get(0).getStartY();
+                            double angle = Math.atan2(dy, dx);
+                            System.out.println(angle);
+                            System.out.println("->");
+//                            angle = angle >= 0 ? angle : 2 * Math.PI + angle;
+                            System.out.println(angle);
+                            // rotate entire layoutNode around its center
+                            ElkUtil.computeChildAreaDimensions(layoutNode);
+                            double cx = (layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH) + (padding.left + padding.right)) / 2;
+                            double cy = (layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT) + (padding.top + padding.bottom)) / 2;
+                            System.out.println("center: " + cx + "|" + cy);
+                            System.out.println(layoutNode.getWidth() + " " + layoutNode.getHeight());
+                            
+                            
+                            for (ElkNode node : layoutNode.getChildren()) {
+                                double nx = node.getX();
+                                double ny = node.getY();
+                                System.out.println("rotate: " + nx + "|" + ny);
+                                nx -= cx;
+                                ny -= cy;
+                                double newX = nx * Math.cos(angle) - ny * Math.sin(angle) + cx;
+                                double newY = nx * Math.sin(angle) + ny * Math.cos(angle) + cy;
+                                System.out.println("new: " + newX +"|" + newY);
+                                node.setX(newX);
+                                node.setY(newY);
+                            }
+                        } catch (Exception e) {
+                            // continue
+                        }
+                        
+                    }
+                    
                     // root node needs its size to be set manually
                     if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
                         ElkUtil.computeChildAreaDimensions(layoutNode);
