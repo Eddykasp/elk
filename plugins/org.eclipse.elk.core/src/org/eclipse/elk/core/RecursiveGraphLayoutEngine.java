@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.eclipse.elk.core.data.DeprecatedLayoutOptionReplacer;
 import org.eclipse.elk.core.data.LayoutAlgorithmData;
@@ -319,7 +320,9 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                         layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, scaleFactor);
                         topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" 
                                 + scaleFactorX + "|" + scaleFactorY + ")");
-                        
+                        // LOGGING FOR GENERATING HIERARCHY TREES
+                        List<String> children = layoutNode.getChildren().stream().map(node -> node.getIdentifier()).collect(Collectors.toList());
+                        System.out.println("node " + layoutNode.getIdentifier() + ", scale: " + scaleFactor + ", children: " + children);
                         // content alignment
                         Set<ContentAlignment> contentAlignment = layoutNode.getProperty(CoreOptions.CONTENT_ALIGNMENT);
                         
