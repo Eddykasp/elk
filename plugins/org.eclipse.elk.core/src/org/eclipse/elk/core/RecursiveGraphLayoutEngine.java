@@ -70,6 +70,10 @@ import com.google.common.collect.Lists;
  */
 public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
     
+    private ElkNode currentHierarchyTreeParent;
+    private ElkNode hierarchyTree;
+    private IElkProgressMonitor hierarchyTreeLogger;
+    
     /**
      * Performs recursive layout on the given layout graph.
      * 
@@ -100,8 +104,17 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
             ElkUtil.applyVisitors(layoutGraph, new LayoutAlgorithmResolver());
         }
         
+        // Create hierarchy tree
+        hierarchyTreeLogger = progressMonitor.subTask(1);
+        hierarchyTreeLogger.begin("Log Hierarchy Tree", 1);
+        hierarchyTree =  ElkGraphUtil.createGraph();
+        currentHierarchyTreeParent = ElkGraphUtil.createNode(hierarchyTree);
+        ElkGraphUtil.createLabel(currentHierarchyTreeParent).setText("ROOT");
+        
         // Perform recursive layout of the whole substructure of the given node
         layoutRecursively(layoutGraph, testController, progressMonitor);
+        
+        hierarchyTreeLogger.logGraph(hierarchyTree, "Hierarchy Tree");
         
         progressMonitor.done();
     }
@@ -125,7 +138,6 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
      */
     protected List<ElkEdge> layoutRecursively(final ElkNode layoutNode, final TestController testController,
             final IElkProgressMonitor progressMonitor) {
-        
         if (progressMonitor.isCanceled()) {
             return Collections.emptyList();
         }
@@ -386,10 +398,50 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                     topdownLayoutMonitor.done();
                 }
                 
+                // store absolute scale factor
+                double parentScale = 1.0;
+                if (layoutNode.getParent() instanceof ElkNode) {
+                    parentScale = currentHierarchyTreeParent.getIncomingEdges().get(0).getSources().get(0).getProperty(CoreOptions.TOPDOWN_SCALE_FACTOR);
+                }
+                
+                // if the absolute scale is the same as the parent's scale, delete the current node and merge the info into the parent instead
+                if (layoutNode.getProperty(CoreOptions.TOPDOWN_SCALE_FACTOR) == 1.0 && layoutNode.getParent() instanceof ElkNode) {
+                    ElkEdge deleteEdge = currentHierarchyTreeParent.getIncomingEdges().get(0);
+                    ElkNode parentNode = (ElkNode) deleteEdge.getSources().get(0);
+                    String text = parentNode.getLabels().get(0).getText();
+                    String childText = currentHierarchyTreeParent.getLabels().get(0).getText();
+                    parentNode.getLabels().get(0).setText(text + "+" + childText);
+                    
+                    // delete edge and node
+                    hierarchyTree.getChildren().remove(currentHierarchyTreeParent);
+                    deleteEdge.setContainingNode(null);
+
+                    currentHierarchyTreeParent = parentNode;
+                } else {
+                    currentHierarchyTreeParent.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, layoutNode.getProperty(CoreOptions.TOPDOWN_SCALE_FACTOR) * parentScale);
+                }
+                
+                
+//                System.out.println(layoutNode.getProperty(CoreOptions.TOPDOWN_SCALE_FACTOR) + " * " + parentScale);
                 // Layout each compound node contained in this node separately
                 for (ElkNode child : layoutNode.getChildren()) {
-                    List<ElkEdge> childLayoutSelfLoops = layoutRecursively(child, testController, progressMonitor); 
+                    
+                    // add each hierarchical child as tree-child to hierarchy tree
+                    ElkNode treeChild = ElkGraphUtil.createNode(hierarchyTree);
+                    ElkLabel label = ElkGraphUtil.createLabel(treeChild);
+                    label.setText(child.getIdentifier());
+                    ElkEdge childEdge = ElkGraphUtil.createEdge(hierarchyTree);
+                    currentHierarchyTreeParent.getOutgoingEdges().add(childEdge);
+                    treeChild.getIncomingEdges().add(childEdge);
+                    // switch current parent to child
+                    ElkNode oldParent = currentHierarchyTreeParent;
+                    currentHierarchyTreeParent = treeChild;
+                    
+                    List<ElkEdge> childLayoutSelfLoops = layoutRecursively(child, testController, progressMonitor);
                     childrenInsideSelfLoops.addAll(childLayoutSelfLoops);
+                    
+                    // switch back to parent
+                    currentHierarchyTreeParent = oldParent;
                     
                     // Apply the LayoutOptions.SCALE_FACTOR if present
                     ElkUtil.applyConfiguredNodeScaling(child);
