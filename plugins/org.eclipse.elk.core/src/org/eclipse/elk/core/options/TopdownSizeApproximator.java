@@ -57,13 +57,11 @@ public enum TopdownSizeApproximator {
             final LayoutAlgorithmData algorithmData = originalGraph.getProperty(CoreOptions.RESOLVED_ALGORITHM);
             
             // clone the current hierarchy
-//            ElkNode node = ElkGraphUtil.createGraph();
             ElkNode node = ElkGraphFactory.eINSTANCE.createElkNode();
             node.copyProperties(originalGraph);
             Map<ElkNode, ElkNode> oldToNewNodeMap = new HashMap<>();
             // copy children
             for (ElkNode child : originalGraph.getChildren()) {
-//                ElkNode newChild = ElkGraphUtil.createNode(node);
                 ElkNode newChild = ElkGraphFactory.eINSTANCE.createElkNode();
                 newChild.setParent(node);
                 newChild.copyProperties(child);
@@ -78,7 +76,6 @@ public enum TopdownSizeApproximator {
                 for (ElkEdge edge : child.getOutgoingEdges()) {
                     ElkNode newSrc = oldToNewNodeMap.get(child);
                     ElkNode newTar = oldToNewNodeMap.get(edge.getTargets().get(0));
-//                    ElkEdge newEdge = ElkGraphUtil.createSimpleEdge(newSrc, newTar);
                     ElkEdge newEdge = ElkGraphFactory.eINSTANCE.createElkEdge();
                     newEdge.getSources().add(newSrc);
                     newEdge.getTargets().add(newTar);
@@ -133,6 +130,76 @@ public enum TopdownSizeApproximator {
             
             // alternative 3:
             // return new KVector(Math.max(minWidth, childAreaDesiredWidth), Math.max(minHeight, childAreaDesiredHeight));
+            
+        }
+    },
+    
+    /**
+     * The dynamic size approximator uses lookahead layout to determine the nodes approximate desired size and then
+     * sets the final size either directly to that desired size or to a size that is maximally the width of the top-down
+     * node width but while still keeping the desired aspect ratio of the lookahead layout.
+     */
+    DYNAMIC {
+        @Override
+        public KVector getSize(final ElkNode originalGraph) {
+            final LayoutAlgorithmData algorithmData = originalGraph.getProperty(CoreOptions.RESOLVED_ALGORITHM);
+            
+            /** LOOKAHEAD LAYOUT */
+            // clone the current hierarchy
+            ElkNode node = ElkGraphFactory.eINSTANCE.createElkNode();
+            node.copyProperties(originalGraph);
+            Map<ElkNode, ElkNode> oldToNewNodeMap = new HashMap<>();
+            // copy children
+            for (ElkNode child : originalGraph.getChildren()) {
+                ElkNode newChild = ElkGraphFactory.eINSTANCE.createElkNode();
+                newChild.setParent(node);
+                newChild.copyProperties(child);
+                // set size according to microlayout or node count approximator
+                KVector size = TopdownSizeApproximator.COUNT_CHILDREN.getSize(child);
+                newChild.setDimensions(Math.max(child.getWidth(), size.x),
+                        Math.max(child.getHeight(), size.y));
+                oldToNewNodeMap.put(child, newChild);
+            }
+            // copy edges, explicitly assuming no hyperedges here
+            for (ElkNode child : originalGraph.getChildren()) {
+                for (ElkEdge edge : child.getOutgoingEdges()) {
+                    ElkNode newSrc = oldToNewNodeMap.get(child);
+                    ElkNode newTar = oldToNewNodeMap.get(edge.getTargets().get(0));
+                    ElkEdge newEdge = ElkGraphFactory.eINSTANCE.createElkEdge();
+                    newEdge.getSources().add(newSrc);
+                    newEdge.getTargets().add(newTar);
+                    newEdge.setContainingNode(newSrc.getParent());
+                    newEdge.copyProperties(edge);
+                }
+            }
+            
+            AbstractLayoutProvider layoutProvider = algorithmData.getInstancePool().fetch();
+            try {
+                // Perform layout on the current hierarchy level
+                layoutProvider.layout(node, new NullElkProgressMonitor());
+                algorithmData.getInstancePool().release(layoutProvider);
+            } catch (Exception exception) {
+                // The layout provider has failed - destroy it slowly and painfully
+                layoutProvider.dispose();
+                throw exception;
+            }
+            
+            if (!(node.hasProperty(CoreOptions.CHILD_AREA_WIDTH) 
+                    || node.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
+                // compute child area if it hasn't been set by the layout algorithm
+                ElkUtil.computeChildAreaDimensions(node);
+            }
+            
+            double childAreaDesiredWidth = node.getProperty(CoreOptions.CHILD_AREA_WIDTH);
+            double childAreaDesiredHeight = node.getProperty(CoreOptions.CHILD_AREA_HEIGHT);
+            
+            double childAreaDesiredAspectRatio = childAreaDesiredWidth / childAreaDesiredHeight;
+            /** END OF LOOKAHEAD */
+            
+            // apply desired size and aspect ratio to node, capped to the set size
+            double unitSize = node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
+            return new KVector(Math.min(unitSize, childAreaDesiredWidth),
+                    Math.min(unitSize/childAreaDesiredAspectRatio, childAreaDesiredHeight));
             
         }
     };
