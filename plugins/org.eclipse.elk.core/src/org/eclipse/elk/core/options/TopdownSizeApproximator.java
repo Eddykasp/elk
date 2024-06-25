@@ -27,7 +27,7 @@ import org.eclipse.elk.graph.ElkNode;
  * of hierarchical nodes. This allows the use of a size approximation strategy to minimize white space
  * in the final result.
  */
-public enum TopdownSizeApproximator {
+public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
     
     /**
      * Computes the square root of the number of children and uses that as a multiplier for the base size
@@ -39,7 +39,7 @@ public enum TopdownSizeApproximator {
         @Override
         public KVector getSize(final ElkNode node) {
             double size = node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH) 
-                    * Math.sqrt(node.getChildren().size());
+                    * Math.sqrt(node.getChildren().size()) * 0.4;
             return new KVector(size, size / node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO));
         }
         
@@ -203,12 +203,5 @@ public enum TopdownSizeApproximator {
             
         }
     };
-    
-    /**
-     * Returns an approximated required size for a given node.
-     * @param node the node
-     * @return the size as a vector
-     */
-    public abstract KVector getSize(ElkNode node);
 
 }

@@ -23,8 +23,8 @@ import org.eclipse.elk.core.math.KVectorChain;
 import org.eclipse.elk.core.options.ContentAlignment;
 import org.eclipse.elk.core.options.CoreOptions;
 import org.eclipse.elk.core.options.HierarchyHandling;
+import org.eclipse.elk.core.options.ITopdownSizeApproximator;
 import org.eclipse.elk.core.options.TopdownNodeTypes;
-import org.eclipse.elk.core.options.TopdownSizeApproximator;
 import org.eclipse.elk.core.testing.TestController;
 import org.eclipse.elk.core.util.ElkUtil;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
@@ -248,12 +248,17 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                                 KVector requiredSize = topdownLayoutProvider.getPredictedGraphSize(childNode);
                                 childNode.setDimensions(Math.max(childNode.getWidth(), requiredSize.x), 
                                         Math.max(childNode.getHeight(), requiredSize.y));
-                            } else if (childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR) != null) {
-                                TopdownSizeApproximator approximator = 
+                            } else if (childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR) != null 
+                                    && childNode.getChildren() != null && childNode.getChildren().size() > 0) {
+                                ITopdownSizeApproximator approximator = 
                                         childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR);
                                 KVector size = approximator.getSize(childNode);
-                                childNode.setDimensions(Math.max(childNode.getWidth(), size.x),
-                                        Math.max(childNode.getHeight(), size.y));
+                                // DEBUG
+                                System.out.println(childNode.getIdentifier() + " width: " + childNode.getWidth() + " height: " + childNode.getHeight());
+                                System.out.println("Approx result: x: " + size.x + " y: " + size.y);
+//                                childNode.setDimensions(Math.max(childNode.getWidth(), size.x),
+//                                        Math.max(childNode.getHeight(), size.y));
+                                childNode.setDimensions(size.x,size.y);
                             }
                         }
                     }

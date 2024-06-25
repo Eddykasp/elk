@@ -882,7 +882,7 @@ group topdown {
         requires nodeType == TopdownNodeTypes.HIERARCHICAL_NODE
     }
     
-    advanced option sizeApproximator: TopdownSizeApproximator {
+    advanced option sizeApproximator: ITopdownSizeApproximator {
         label "Topdown Size Approximator"
         description
             "The size approximator to be used to set sizes of hierarchical nodes during topdown layout. The default
