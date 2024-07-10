@@ -10,7 +10,9 @@
 package org.eclipse.elk.core;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -28,6 +30,8 @@ import org.eclipse.elk.core.options.TopdownNodeTypes;
 import org.eclipse.elk.core.testing.TestController;
 import org.eclipse.elk.core.util.ElkUtil;
 import org.eclipse.elk.core.util.IElkProgressMonitor;
+import org.eclipse.elk.core.util.topdown.LayoutQuality;
+import org.eclipse.elk.core.util.topdown.OptionCombinations;
 import org.eclipse.elk.graph.ElkBendPoint;
 import org.eclipse.elk.graph.ElkConnectableShape;
 import org.eclipse.elk.graph.ElkEdge;
@@ -35,6 +39,7 @@ import org.eclipse.elk.graph.ElkEdgeSection;
 import org.eclipse.elk.graph.ElkLabel;
 import org.eclipse.elk.graph.ElkNode;
 import org.eclipse.elk.graph.properties.GraphFeature;
+import org.eclipse.elk.graph.properties.IProperty;
 import org.eclipse.elk.graph.util.ElkGraphUtil;
 
 import com.google.common.collect.Lists;
@@ -253,12 +258,9 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                                 ITopdownSizeApproximator approximator = 
                                         childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR);
                                 KVector size = approximator.getSize(childNode);
-                                // DEBUG
-                                System.out.println(childNode.getIdentifier() + " width: " + childNode.getWidth() + " height: " + childNode.getHeight());
-                                System.out.println("Approx result: x: " + size.x + " y: " + size.y);
-//                                childNode.setDimensions(Math.max(childNode.getWidth(), size.x),
-//                                        Math.max(childNode.getHeight(), size.y));
-                                childNode.setDimensions(size.x,size.y);
+                                ElkPadding padding = childNode.getProperty(CoreOptions.PADDING);
+                                childNode.setDimensions(Math.max(childNode.getWidth(), size.x + padding.left + padding.right),
+                                        Math.max(childNode.getHeight(), size.y + padding.top + padding.bottom));
                             }
                         }
                     }
@@ -271,123 +273,56 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                     topdownLayoutMonitor.log("Available Child Area: (" + childAreaAvailableWidth 
                             + "|" + childAreaAvailableHeight + ")");
                     
+                    // The following line causes the aspect ratios to always be set to the same size when using aspect ratio whitespace elimination
                     layoutNode.setProperty(CoreOptions.ASPECT_RATIO, 
                             childAreaAvailableWidth / childAreaAvailableHeight);
-                        
-                    executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
-                    // root node needs its size to be set manually
-                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
-                        ElkUtil.computeChildAreaDimensions(layoutNode);
-                        layoutNode.setDimensions(
-                                padding.left + layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH) 
-                                    + padding.right, 
-                                padding.top + layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT) 
-                                    + padding.bottom);
-                    }
-                    topdownLayoutMonitor.log("Executed layout algorithm: " 
-                            + layoutNode.getProperty(CoreOptions.ALGORITHM)
-                            + " on node " + layoutNode.getIdentifier());
                     
-                    if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(
-                            TopdownNodeTypes.HIERARCHICAL_NODE)) {
-                        
-                        if (childAreaAvailableWidth < 0 || childAreaAvailableHeight < 0) {
-                            // Hierarchical node width and/or aspect ratio of parent set to be smaller than paddings 
-                            // the current layout node, throw exception
-                            throw new UnsupportedConfigurationException("The size defined by the parent parallel node"
-                                    + " is too small for the space provided by the paddings of the child hierarchical"
-                                    + " node. " + layoutNode.getIdentifier());
-                        }
-                        
-                        
-                        // check whether child area has been set, and if it hasn't run the util function 
-                        // to determine the size of the area
-                        if (!(layoutNode.hasProperty(CoreOptions.CHILD_AREA_WIDTH) 
-                                || layoutNode.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
-                            // compute child area if it hasn't been set by the layout algorithm
-                            ElkUtil.computeChildAreaDimensions(layoutNode);
-                        }
-                        
-                        double childAreaDesiredWidth = layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH);
-                        double childAreaDesiredHeight = layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT);
+                    // TODO: look ahead more than one step to eliminate more whitespace
+                    // TODO: we should not create this list for every layout call and it should be created externally, 
+                    //       e.g. in KLighD so I can have access to all interesting options such as label management
+                    //       or actually just make a property for this and set in the synthesis, so I also have access to layered options
+//                    Map<IProperty<?>,List<?>> optionValueMap = new HashMap<>();
+//                    optionValueMap.put(CoreOptions.DIRECTION, new ArrayList<Direction>(EnumSet.of(Direction.DOWN, Direction.RIGHT)));
+//                    // these are only for testing, they aren't sensible options to try
+//                    List<ElkPadding> elkPaddings = new ArrayList<>();
+//                    elkPaddings.add(new ElkPadding());
+//                    elkPaddings.add(new ElkPadding(10));
+//                    optionValueMap.put(CoreOptions.PADDING, elkPaddings);
+                    
+                    Map<IProperty<?>,List<?>> optionValueMap = layoutNode.getProperty(CoreOptions.TOPDOWN_OPTION_VALUE_MAP);
+                    Map<IProperty,Object> bestOptionValueMap = new HashMap<>();
+                    
+                    List<Map<IProperty<Object>, Object>> allCombinations = OptionCombinations.generateAllValueCombinations(optionValueMap);
+//                    System.out.println(allCombinations);
 
-                        topdownLayoutMonitor.log("Desired Child Area: (" + childAreaDesiredWidth 
-                                + "|" + childAreaDesiredHeight + ")");
-                        
-                        // compute scaleFactor
-                        double scaleFactorX = childAreaAvailableWidth / childAreaDesiredWidth;
-                        double scaleFactorY = childAreaAvailableHeight / childAreaDesiredHeight;
-
-                        double scaleFactor = 
-                                Math.min(scaleFactorX, Math.min(scaleFactorY, 
-                                        layoutNode.getProperty(CoreOptions.TOPDOWN_SCALE_CAP)));
-                        layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, scaleFactor);
-                        topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" 
-                                + scaleFactorX + "|" + scaleFactorY + ")");
-                        
-                        // content alignment
-                        Set<ContentAlignment> contentAlignment = layoutNode.getProperty(CoreOptions.CONTENT_ALIGNMENT);
-                        
-                        double alignmentShiftX = 0;
-                        double alignmentShiftY = 0;
-                        
-                        // horizontal alignment
-                        if (scaleFactor < scaleFactorX) {
-                            if (contentAlignment.contains(ContentAlignment.H_CENTER)) {
-                                alignmentShiftX = (childAreaAvailableWidth / 2 
-                                        - (childAreaDesiredWidth * scaleFactor) / 2) 
-                                        / scaleFactor;
-                            } else if (contentAlignment.contains(ContentAlignment.H_RIGHT)) {
-                                alignmentShiftX = (childAreaAvailableWidth 
-                                        - childAreaDesiredWidth * scaleFactor) 
-                                        / scaleFactor;
-                            }
+                    
+//                    Set<Double> aspectRatios = Set.of(0.5, 1.0, 2.0); // TODO: I would like to do something like this, but this doesn't directly affect layout and therefore needs to be done one layer earlier
+//                    Double bestAspectRatio = 1.0;                     //       Maybe I could do this in the approximators  
+                    
+                    Double bestWhitespace = Double.POSITIVE_INFINITY;
+                    
+                    for (Map<IProperty<Object>, Object> optionCombination : allCombinations) {
+                        for (IProperty<Object> option : optionCombination.keySet()) {
+                            layoutNode.setProperty(option, optionCombination.get(option));
                         }
-                        
-                        // vertical alignment
-                        if (scaleFactor < scaleFactorY) {
-                            if (contentAlignment.contains(ContentAlignment.V_CENTER)) {
-                                alignmentShiftY = (childAreaAvailableHeight / 2 
-                                        - (childAreaDesiredHeight * scaleFactor) / 2) 
-                                        / scaleFactor;
-                            } else if (contentAlignment.contains(ContentAlignment.V_BOTTOM)) {
-                                alignmentShiftY = (childAreaAvailableHeight
-                                        - childAreaDesiredHeight * scaleFactor) 
-                                        / scaleFactor;
+                        double whitespace = doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
+                                topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
+                        if (whitespace < bestWhitespace) {
+                            bestWhitespace = whitespace;
+                            for (IProperty<Object> option : optionCombination.keySet()) {
+                                bestOptionValueMap.put(option, optionCombination.get(option));
                             }
-                        }
-
-                        double xShift = alignmentShiftX + (padding.left / scaleFactor - padding.left);
-                        double yShift = alignmentShiftY + (padding.top / scaleFactor - padding.top);
-                        topdownLayoutMonitor.log("Shift: (" + xShift + "|" + yShift + ")");
-                        // shift all nodes in layout
-                        for (ElkNode node : layoutNode.getChildren()) {
-                            // shift all nodes in layout
-                            node.setX(node.getX() + xShift);
-                            node.setY(node.getY() + yShift); 
-                        }
-                        // shift all edges
-                        for (ElkEdge edge : layoutNode.getContainedEdges()) {
-                            for (ElkEdgeSection section : edge.getSections()) {
-                                section.setStartLocation(section.getStartX() + xShift, section.getStartY() + yShift);
-                                section.setEndLocation(section.getEndX() + xShift, section.getEndY() + yShift);
-                                for (ElkBendPoint bendPoint : section.getBendPoints()) {
-                                    bendPoint.set(bendPoint.getX() + xShift, bendPoint.getY() + yShift);
-                                }
-                            }
-                            // shift edge labels
-                            for (ElkLabel label : edge.getLabels()) {
-                                label.setLocation(label.getX() + xShift, label.getY() + yShift);
-                            }
-                            // shift junction points
-                            KVectorChain junctionPoints = edge.getProperty(CoreOptions.JUNCTION_POINTS);
-                            for (KVector junctionPoint : junctionPoints) {
-                                junctionPoint.x += xShift;
-                                junctionPoint.y += yShift;
-                            }
-                            edge.setProperty(CoreOptions.JUNCTION_POINTS, junctionPoints);
                         }
                     }
+                    
+                    System.out.println(layoutNode.getIdentifier());
+                    for (IProperty<Object> option : bestOptionValueMap.keySet()) {
+                        layoutNode.setProperty(option, bestOptionValueMap.get(option));
+                        System.out.println(option + " " + bestOptionValueMap.get(option));
+                    }
+                    doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
+                            topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
+                    
                     topdownLayoutMonitor.done();
                 }
                 
@@ -427,6 +362,147 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    /**
+     * @param layoutNode
+     * @param testController
+     * @param progressMonitor
+     * @param algorithmData
+     * @param nodeCount
+     * @param topdownLayoutMonitor
+     * @param padding
+     * @param childAreaAvailableWidth
+     * @param childAreaAvailableHeight
+     */
+    private double doSingleLayout(final ElkNode layoutNode, final TestController testController,
+            final IElkProgressMonitor progressMonitor, final LayoutAlgorithmData algorithmData, int nodeCount,
+            IElkProgressMonitor topdownLayoutMonitor, ElkPadding padding, double childAreaAvailableWidth,
+            double childAreaAvailableHeight) {
+        executeAlgorithm(layoutNode, algorithmData, testController, progressMonitor.subTask(nodeCount));
+        // root node needs its size to be set manually
+        if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(TopdownNodeTypes.ROOT_NODE)) {
+            ElkUtil.computeChildAreaDimensions(layoutNode);
+            layoutNode.setDimensions(
+                    padding.left + layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH) 
+                        + padding.right, 
+                    padding.top + layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT) 
+                        + padding.bottom);
+        }
+        topdownLayoutMonitor.log("Executed layout algorithm: " 
+                + layoutNode.getProperty(CoreOptions.ALGORITHM)
+                + " on node " + layoutNode.getIdentifier());
+        
+        if (layoutNode.getProperty(CoreOptions.TOPDOWN_NODE_TYPE).equals(
+                TopdownNodeTypes.HIERARCHICAL_NODE)) {
+            
+            if (childAreaAvailableWidth < 0 || childAreaAvailableHeight < 0) {
+                // Hierarchical node width and/or aspect ratio of parent set to be smaller than paddings 
+                // the current layout node, throw exception
+                throw new UnsupportedConfigurationException("The size defined by the parent parallel node"
+                        + " is too small for the space provided by the paddings of the child hierarchical"
+                        + " node. " + layoutNode.getIdentifier());
+            }
+            
+            
+            // check whether child area has been set, and if it hasn't run the util function 
+            // to determine the size of the area
+//            if (!(layoutNode.hasProperty(CoreOptions.CHILD_AREA_WIDTH)      THIS CHECK IS DISABLED BECAUSE IT BREAKS REPEATED LAYOUTS WITH CHANGING CONFIGS
+//                    || layoutNode.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
+                // compute child area if it hasn't been set by the layout algorithm
+                ElkUtil.computeChildAreaDimensions(layoutNode);
+//            }
+            
+            double childAreaDesiredWidth = layoutNode.getProperty(CoreOptions.CHILD_AREA_WIDTH);
+            double childAreaDesiredHeight = layoutNode.getProperty(CoreOptions.CHILD_AREA_HEIGHT);
+
+            topdownLayoutMonitor.log("Desired Child Area: (" + childAreaDesiredWidth 
+                    + "|" + childAreaDesiredHeight + ")");
+            
+            // compute scaleFactor
+            double scaleFactorX = childAreaAvailableWidth / childAreaDesiredWidth;
+            double scaleFactorY = childAreaAvailableHeight / childAreaDesiredHeight;
+
+            double scaleFactor = 
+                    Math.min(scaleFactorX, Math.min(scaleFactorY, 
+                            layoutNode.getProperty(CoreOptions.TOPDOWN_SCALE_CAP)));
+            layoutNode.setProperty(CoreOptions.TOPDOWN_SCALE_FACTOR, scaleFactor);
+            topdownLayoutMonitor.log(layoutNode.getIdentifier() + " -- Local Scale Factor (X|Y): (" 
+                    + scaleFactorX + "|" + scaleFactorY + ")");
+            
+            double extraWhitespace = LayoutQuality.extraWhitespace(new KVector(childAreaAvailableWidth, childAreaAvailableHeight), 
+                    new KVector(childAreaDesiredWidth, childAreaDesiredHeight));
+            if (Math.abs(extraWhitespace) < 0.0001) {
+                extraWhitespace = 0;
+            }
+//            System.out.println("Whitespace introduced in " + layoutNode.getIdentifier() + ": " 
+//                    + extraWhitespace);
+            
+            // content alignment
+            Set<ContentAlignment> contentAlignment = layoutNode.getProperty(CoreOptions.CONTENT_ALIGNMENT);
+            
+            double alignmentShiftX = 0;
+            double alignmentShiftY = 0;
+            
+            // horizontal alignment
+            if (scaleFactor < scaleFactorX) {
+                if (contentAlignment.contains(ContentAlignment.H_CENTER)) {
+                    alignmentShiftX = (childAreaAvailableWidth / 2 
+                            - (childAreaDesiredWidth * scaleFactor) / 2) 
+                            / scaleFactor;
+                } else if (contentAlignment.contains(ContentAlignment.H_RIGHT)) {
+                    alignmentShiftX = (childAreaAvailableWidth 
+                            - childAreaDesiredWidth * scaleFactor) 
+                            / scaleFactor;
+                }
+            }
+            
+            // vertical alignment
+            if (scaleFactor < scaleFactorY) {
+                if (contentAlignment.contains(ContentAlignment.V_CENTER)) {
+                    alignmentShiftY = (childAreaAvailableHeight / 2 
+                            - (childAreaDesiredHeight * scaleFactor) / 2) 
+                            / scaleFactor;
+                } else if (contentAlignment.contains(ContentAlignment.V_BOTTOM)) {
+                    alignmentShiftY = (childAreaAvailableHeight
+                            - childAreaDesiredHeight * scaleFactor) 
+                            / scaleFactor;
+                }
+            }
+
+            double xShift = alignmentShiftX + (padding.left / scaleFactor - padding.left);
+            double yShift = alignmentShiftY + (padding.top / scaleFactor - padding.top);
+            topdownLayoutMonitor.log("Shift: (" + xShift + "|" + yShift + ")");
+            // shift all nodes in layout
+            for (ElkNode node : layoutNode.getChildren()) {
+                // shift all nodes in layout
+                node.setX(node.getX() + xShift);
+                node.setY(node.getY() + yShift); 
+            }
+            // shift all edges
+            for (ElkEdge edge : layoutNode.getContainedEdges()) {
+                for (ElkEdgeSection section : edge.getSections()) {
+                    section.setStartLocation(section.getStartX() + xShift, section.getStartY() + yShift);
+                    section.setEndLocation(section.getEndX() + xShift, section.getEndY() + yShift);
+                    for (ElkBendPoint bendPoint : section.getBendPoints()) {
+                        bendPoint.set(bendPoint.getX() + xShift, bendPoint.getY() + yShift);
+                    }
+                }
+                // shift edge labels
+                for (ElkLabel label : edge.getLabels()) {
+                    label.setLocation(label.getX() + xShift, label.getY() + yShift);
+                }
+                // shift junction points
+                KVectorChain junctionPoints = edge.getProperty(CoreOptions.JUNCTION_POINTS);
+                for (KVector junctionPoint : junctionPoints) {
+                    junctionPoint.x += xShift;
+                    junctionPoint.y += yShift;
+                }
+                edge.setProperty(CoreOptions.JUNCTION_POINTS, junctionPoints);
+            }
+            return extraWhitespace;
+        }
+        return 0;
     }
 
     /**

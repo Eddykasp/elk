@@ -10,6 +10,7 @@
 package org.eclipse.elk
 
 import java.util.EnumSet
+import java.util.Map
 import org.eclipse.elk.core.data.LayoutAlgorithmData
 import org.eclipse.elk.core.^labels.ILabelManager
 import org.eclipse.elk.core.math.ElkMargin
@@ -870,6 +871,14 @@ advanced option topdownLayout: boolean {
 }
 
 group topdown {
+    advanced option optionValueMap: Map {
+        label "Options and values"
+        description
+            "Set of options and their values that should be combined and tried out to find the best combination for 
+             top-down layout."
+        targets parents
+    }
+    
     programmatic option scaleFactor: double {
         label "Topdown Scale Factor"
         description
