@@ -211,11 +211,11 @@ public enum LayeredSizeApproximator implements ITopdownSizeApproximator {
                 throw exception;
             }
             
-            if (!(node.hasProperty(CoreOptions.CHILD_AREA_WIDTH) 
-                    || node.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
+//            if (!(node.hasProperty(CoreOptions.CHILD_AREA_WIDTH) 
+//                    || node.hasProperty(CoreOptions.CHILD_AREA_HEIGHT))) {
                 // compute child area if it hasn't been set by the layout algorithm
                 ElkUtil.computeChildAreaDimensions(node);
-            }
+//            }
             
             ElkPadding padding = node.getProperty(CoreOptions.PADDING);
             double desiredWidth = node.getProperty(CoreOptions.CHILD_AREA_WIDTH) + padding.left + padding.right;
