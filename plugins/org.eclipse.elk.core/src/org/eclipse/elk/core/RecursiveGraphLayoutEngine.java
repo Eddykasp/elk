@@ -321,10 +321,8 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                         }
                     }
                     
-                    System.out.println(layoutNode.getIdentifier());
                     for (IProperty<Object> option : bestOptionValueMap.keySet()) {
                         layoutNode.setProperty(option, bestOptionValueMap.get(option));
-                        System.out.println(option + " " + bestOptionValueMap.get(option));
                     }
                     doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
                             topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
