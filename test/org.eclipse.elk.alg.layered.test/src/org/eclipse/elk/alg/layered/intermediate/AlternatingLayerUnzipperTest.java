@@ -23,10 +23,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 /**
- * Tests the general n-way layer unzipper.
+ * Tests the general n-way alternating layer unzipper.
  *
  */
-public class GeneralLayerUnzipperTest {
+public class AlternatingLayerUnzipperTest {
     
     LayeredLayoutProvider layeredLayout;
     
@@ -72,7 +72,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, nodeFinal);
 
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         
@@ -126,7 +126,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, nodeFinal);
         ElkGraphUtil.createSimpleEdge(node5, nodeFinal);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 3);
         
@@ -174,7 +174,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node1, node4);
         ElkGraphUtil.createSimpleEdge(node1, node5);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         
@@ -226,7 +226,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, nodeFinal);
         ElkGraphUtil.createSimpleEdge(node5, nodeFinal);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         
@@ -291,7 +291,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, node22);
         ElkGraphUtil.createSimpleEdge(node4, node23);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node1.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         node21.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
@@ -355,7 +355,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, nodeFinal);
 
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         
@@ -410,7 +410,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, nodeFinal);
 
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         
@@ -467,7 +467,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node3, node6);
         ElkGraphUtil.createSimpleEdge(node4, node7);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         node5.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
@@ -531,7 +531,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node3, node6);
         ElkGraphUtil.createSimpleEdge(node4, node7);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         node5.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
@@ -599,7 +599,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, node22);
         ElkGraphUtil.createSimpleEdge(node4, node23);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node1.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 3);
         node21.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
@@ -653,7 +653,7 @@ public class GeneralLayerUnzipperTest {
         
         ElkGraphUtil.createSimpleEdge(node4, node5);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_RESET_ON_LONG_EDGES, true);
@@ -708,7 +708,7 @@ public class GeneralLayerUnzipperTest {
         ElkGraphUtil.createSimpleEdge(node4, node5);
         ElkGraphUtil.createSimpleEdge(node1, node6);
         
-        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.N_LAYERS);
+        graph.setProperty(LayeredOptions.LAYER_UNZIPPING_STRATEGY, LayerUnzippingStrategy.ALTERNATING);
         graph.setProperty(LayeredOptions.CONSIDER_MODEL_ORDER_STRATEGY, OrderingStrategy.PREFER_EDGES);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_LAYER_SPLIT, 2);
         node2.setProperty(LayeredOptions.LAYER_UNZIPPING_RESET_ON_LONG_EDGES, false);
