@@ -216,34 +216,11 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
             double baseWidth = originalGraph.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
             double baseHeight = baseWidth / originalGraph.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO);
             
-            // three categories of box sizes, small = half-width, medium = base-width, large = double-width
+            // four categories of box sizes, tiny = half-width, small = base-width, medium = double-width, large = quadruple-width
             // how graph sizes are distributed into these categories has a great effect on the final result
+            double multiplier = TopdownSizeApproximatorUtil.getSizeCategory(originalGraph).getMultiplier();
             
-            final int CUTTOFF_SMALL = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_SMALL);
-            final int CUTTOFF_MEDIUM = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_MEDIUM);;
-            
-            double multiplier = 1.0;
-            
-            int childCount = originalGraph.getChildren().size();
-            
-            if (childCount < CUTTOFF_SMALL) {
-                multiplier = 0.5;
-            } else if (childCount >= CUTTOFF_MEDIUM) {
-                multiplier = 2;
-            }
-            
-            // graphs go up one category if they have a hierarchical depth greater than two
-            // TODO: it would be interesting to add some configurability to this too, for states especially a deeper depth is more relevant the the number of children
-            boolean hasGrandchildren = false;
-            for (ElkNode child : originalGraph.getChildren()) {
-                if (child.getChildren().size() > 0) {
-                    hasGrandchildren = true;
-                    break;
-                }
-            }
-            if (hasGrandchildren) {
-                multiplier *= 2;
-            }
+            // Combine multiplier, spacings and base size to compute final size
             ElkPadding padding = originalGraph.getProperty(CoreOptions.PADDING);
             double nodeNodeSpacing = CoreOptions.SPACING_NODE_NODE.getDefault();
             if (originalGraph.getParent() != null) {
@@ -253,6 +230,53 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
             return resultSize.add(new KVector(
                     -(padding.left + padding.right) - nodeNodeSpacing,
                     -(padding.top + padding.bottom) - nodeNodeSpacing));
+        }
+    },
+    
+    /**
+     * This approximator assumes that the node's contents are:
+     * 1. approximated using FIXED_INTEGER_RATIO_BOXES
+     * 2. laid out using a bin packing/rectpacking approach that packs the boxes in a close to optimal manner
+     * 
+     * This way the size approximation performed for the nodes here, later provides almost exactly the right
+     * amount of space for rectpacking later.
+     * 
+     * Important: when using this strategy HIERARCHICAL_NODE_WIDTH and HIERARCHICAL_NODE_ASPECT_RATIO must be consistent
+     *            for all nodes!
+     */
+    ASSUME_BIN_PACKING {
+        @Override public KVector getSize(final ElkNode originalGraph) {
+            
+            // get the number of each box per category
+            // tiny, small, medium, large
+            int categoryCounts[] = {0, 0, 0, 0};
+            
+            for (ElkNode child : originalGraph.getChildren()) {
+                SizeCategory category = TopdownSizeApproximatorUtil.getSizeCategory(child);
+                switch(category) {
+                case TINY:
+                    categoryCounts[0] += 1;
+                    break;
+                case SMALL:
+                    categoryCounts[1] += 1;
+                    break;
+                case MEDIUM:
+                    categoryCounts[2] += 1;
+                    break;
+                case LARGE:
+                    categoryCounts[3] += 1;
+                    break;
+                }
+            }
+            
+            // estimate packing problem area
+            // TODO:
+            
+            // multiply the packing area by the base size, this will only work if the base size is identical for all nodes!!
+            // TODO:
+            
+            
+            return new KVector();
         }
     };
 
