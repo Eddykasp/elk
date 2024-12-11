@@ -202,6 +202,58 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
                     Math.min(unitSize/childAreaDesiredAspectRatio, childAreaDesiredHeight));
             
         }
+    },
+    
+    /**
+     * Fixed Integer Ratio Approximator
+     * Dependent on the size of the child graphs, rectangles of fixed ratios are produced.
+     * The goal is to enable good packings and also give bigger subgraphs more space.
+     */
+    FIXED_INTEGER_RATIO_BOXES {
+        @Override
+        public KVector getSize(final ElkNode originalGraph) {
+            
+            double baseWidth = originalGraph.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
+            double baseHeight = baseWidth / originalGraph.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO);
+            
+            // three categories of box sizes, small = half-width, medium = base-width, large = double-width
+            // how graph sizes are distributed into these categories has a great effect on the final result
+            
+            final int CUTTOFF_SMALL = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_SMALL);
+            final int CUTTOFF_MEDIUM = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_MEDIUM);;
+            
+            double multiplier = 1.0;
+            
+            int childCount = originalGraph.getChildren().size();
+            
+            if (childCount < CUTTOFF_SMALL) {
+                multiplier = 0.5;
+            } else if (childCount >= CUTTOFF_MEDIUM) {
+                multiplier = 2;
+            }
+            
+            // graphs go up one category if they have a hierarchical depth greater than two
+            // TODO: it would be interesting to add some configurability to this too, for states especially a deeper depth is more relevant the the number of children
+            boolean hasGrandchildren = false;
+            for (ElkNode child : originalGraph.getChildren()) {
+                if (child.getChildren().size() > 0) {
+                    hasGrandchildren = true;
+                    break;
+                }
+            }
+            if (hasGrandchildren) {
+                multiplier *= 2;
+            }
+            ElkPadding padding = originalGraph.getProperty(CoreOptions.PADDING);
+            double nodeNodeSpacing = CoreOptions.SPACING_NODE_NODE.getDefault();
+            if (originalGraph.getParent() != null) {
+                nodeNodeSpacing = originalGraph.getParent().getProperty(CoreOptions.SPACING_NODE_NODE);
+            }
+            KVector resultSize = new KVector(baseWidth, baseHeight).scale(multiplier);
+            return resultSize.add(new KVector(
+                    -(padding.left + padding.right) - nodeNodeSpacing,
+                    -(padding.top + padding.bottom) - nodeNodeSpacing));
+        }
     };
 
 }
