@@ -265,13 +265,11 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
                                 // If no approximator is set, use the set sizes for atomic nodes and use the properties
                                 // that have been set for nodes containing further children
                                 if (childNode.getChildren().size() != 0) {
-                                    childNode.setDimensions(layoutNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH), layoutNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH) / layoutNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO));
-                                    // TODO: change to following line, because node should set their own sizes, this breaks previous examples
-//                                    childNode.setDimensions(
-//                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH),
-//                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH) /
-//                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO)
-//                                    );
+                                    childNode.setDimensions(
+                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH),
+                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH) /
+                                            childNode.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO)
+                                    );
                                 }
                             }
                         }
