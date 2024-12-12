@@ -300,33 +300,35 @@ public class RecursiveGraphLayoutEngine implements IGraphLayoutEngine {
 //                    optionValueMap.put(CoreOptions.PADDING, elkPaddings);
                     
                     Map<IProperty<?>,List<?>> optionValueMap = layoutNode.getProperty(CoreOptions.TOPDOWN_OPTION_VALUE_MAP);
-                    Map<IProperty,Object> bestOptionValueMap = new HashMap<>();
-                    
-                    List<Map<IProperty<Object>, Object>> allCombinations = OptionCombinations.generateAllValueCombinations(optionValueMap);
-//                    System.out.println(allCombinations);
-
-                    
-//                    Set<Double> aspectRatios = Set.of(0.5, 1.0, 2.0); // TODO: I would like to do something like this, but this doesn't directly affect layout and therefore needs to be done one layer earlier
-//                    Double bestAspectRatio = 1.0;                     //       Maybe I could do this in the approximators  
-                    
-                    Double bestWhitespace = Double.POSITIVE_INFINITY;
-                    
-                    for (Map<IProperty<Object>, Object> optionCombination : allCombinations) {
-                        for (IProperty<Object> option : optionCombination.keySet()) {
-                            layoutNode.setProperty(option, optionCombination.get(option));
-                        }
-                        double whitespace = doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
-                                topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
-                        if (whitespace < bestWhitespace) {
-                            bestWhitespace = whitespace;
+                    if (optionValueMap != null) {
+                        Map<IProperty,Object> bestOptionValueMap = new HashMap<>();
+                        
+                        List<Map<IProperty<Object>, Object>> allCombinations = OptionCombinations.generateAllValueCombinations(optionValueMap);
+    //                    System.out.println(allCombinations);
+    
+                        
+    //                    Set<Double> aspectRatios = Set.of(0.5, 1.0, 2.0); // TODO: I would like to do something like this, but this doesn't directly affect layout and therefore needs to be done one layer earlier
+    //                    Double bestAspectRatio = 1.0;                     //       Maybe I could do this in the approximators  
+                        
+                        Double bestWhitespace = Double.POSITIVE_INFINITY;
+                        
+                        for (Map<IProperty<Object>, Object> optionCombination : allCombinations) {
                             for (IProperty<Object> option : optionCombination.keySet()) {
-                                bestOptionValueMap.put(option, optionCombination.get(option));
+                                layoutNode.setProperty(option, optionCombination.get(option));
+                            }
+                            double whitespace = doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
+                                    topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
+                            if (whitespace < bestWhitespace) {
+                                bestWhitespace = whitespace;
+                                for (IProperty<Object> option : optionCombination.keySet()) {
+                                    bestOptionValueMap.put(option, optionCombination.get(option));
+                                }
                             }
                         }
-                    }
-                    
-                    for (IProperty<Object> option : bestOptionValueMap.keySet()) {
-                        layoutNode.setProperty(option, bestOptionValueMap.get(option));
+                        
+                        for (IProperty<Object> option : bestOptionValueMap.keySet()) {
+                            layoutNode.setProperty(option, bestOptionValueMap.get(option));
+                        }
                     }
                     doSingleLayout(layoutNode, testController, progressMonitor, algorithmData, nodeCount,
                             topdownLayoutMonitor, padding, childAreaAvailableWidth, childAreaAvailableHeight);
