@@ -234,49 +234,46 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
     },
     
     /**
-     * This approximator assumes that the node's contents are:
-     * 1. approximated using FIXED_INTEGER_RATIO_BOXES
-     * 2. laid out using a bin packing/rectpacking approach that packs the boxes in a close to optimal manner
-     * 
-     * This way the size approximation performed for the nodes here, later provides almost exactly the right
-     * amount of space for rectpacking later.
-     * 
-     * Important: when using this strategy HIERARCHICAL_NODE_WIDTH and HIERARCHICAL_NODE_ASPECT_RATIO must be consistent
-     *            for all nodes!
+     * This approximator simply lays out the next level and sets its algorithm to fixed so that it is later skipped.
      */
-    ASSUME_BIN_PACKING {
+    LAYOUT_NEXT_LEVEL {
         @Override public KVector getSize(final ElkNode originalGraph) {
             
-            // get the number of each box per category
-            // tiny, small, medium, large
-            int categoryCounts[] = {0, 0, 0, 0};
-            
-            for (ElkNode child : originalGraph.getChildren()) {
-                SizeCategory category = TopdownSizeApproximatorUtil.getSizeCategory(child);
-                switch(category) {
-                case TINY:
-                    categoryCounts[0] += 1;
-                    break;
-                case SMALL:
-                    categoryCounts[1] += 1;
-                    break;
-                case MEDIUM:
-                    categoryCounts[2] += 1;
-                    break;
-                case LARGE:
-                    categoryCounts[3] += 1;
-                    break;
-                }
+            // do size approximations for children
+            for (ElkNode childNode : originalGraph.getChildren()) {
+                ITopdownSizeApproximator approximator = 
+                        childNode.getProperty(CoreOptions.TOPDOWN_SIZE_APPROXIMATOR);
+                KVector size = approximator.getSize(childNode);
+                ElkPadding padding = childNode.getProperty(CoreOptions.PADDING);
+                // never reuse the old size, always reset, otherwise calling layout multiple times leads to growing regions
+                childNode.setDimensions(size.x + padding.left + padding.right,
+                        size.y + padding.top + padding.bottom);
             }
             
-            // estimate packing problem area
-            // TODO:
+            // layout children
+            // Get an instance of the layout provider
+            final LayoutAlgorithmData algorithmData = originalGraph.getProperty(CoreOptions.RESOLVED_ALGORITHM);
+            AbstractLayoutProvider layoutProvider = algorithmData.getInstancePool().fetch();
             
-            // multiply the packing area by the base size, this will only work if the base size is identical for all nodes!!
-            // TODO:
+            try {
+                // Perform layout on the current hierarchy level
+                layoutProvider.layout(originalGraph, new NullElkProgressMonitor());
+                algorithmData.getInstancePool().release(layoutProvider);
+            } catch (Exception exception) {
+                // The layout provider has failed - destroy it slowly and painfully
+                layoutProvider.dispose();
+                throw exception;
+            }
             
+            // set layout to fixed layout
+            originalGraph.setProperty(CoreOptions.ALGORITHM, FixedLayouterOptions.ALGORITHM_ID);
             
-            return new KVector();
+            ElkUtil.computeChildAreaDimensions(originalGraph);
+            double childAreaDesiredWidth = originalGraph.getProperty(CoreOptions.CHILD_AREA_WIDTH);
+            double childAreaDesiredHeight = originalGraph.getProperty(CoreOptions.CHILD_AREA_HEIGHT);
+            
+            // apply size to graph
+            return new KVector(childAreaDesiredWidth, childAreaDesiredHeight);
         }
     };
 
