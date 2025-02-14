@@ -218,7 +218,7 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
             
             // four categories of box sizes, tiny = half-width, small = base-width, medium = double-width, large = quadruple-width
             // how graph sizes are distributed into these categories has a great effect on the final result
-            double multiplier = TopdownSizeApproximatorUtil.getSizeCategory(originalGraph).getMultiplier();
+            double multiplier = TopdownSizeApproximatorUtil.getSizeCategoryMultiplier(originalGraph);
             
             // Combine multiplier, spacings and base size to compute final size
             ElkPadding padding = originalGraph.getProperty(CoreOptions.PADDING);

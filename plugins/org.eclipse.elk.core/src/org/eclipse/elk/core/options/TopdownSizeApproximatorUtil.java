@@ -18,36 +18,107 @@ import org.eclipse.elk.graph.ElkNode;
 public class TopdownSizeApproximatorUtil {
     
     /**
-     * Computes the multiplier to use for a box size dependent on the contents of the graph and defined cutoffs.
-     * @param originalGraph the parent graph
-     * @return the multiplier value to scale the final area with
+     * Dynamically calculate the multiplier to be applied for the side length of the input node based on the number 
+     * of children (with and without hierarchy) it and its siblings have. The distribution is mapped to a log scale,
+     * which is divided into a number of categories that determine the multiplier.
+     * 
+     * Category i => 2^i
+     * 
+     * @param originalGraph
+     * @return
      */
-    public static SizeCategory getSizeCategory(final ElkNode originalGraph) {
-        final int CUTTOFF_SMALL = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_SMALL);
-        final int CUTTOFF_MEDIUM = originalGraph.getProperty(CoreOptions.TOPDOWN_CUTOFF_MEDIUM);;
+    public static double getSizeCategoryMultiplier(final ElkNode originalGraph) {
+        ElkNode parent = originalGraph.getParent();
+        int thisGraphsSize = getGraphSize(originalGraph);
         
-        SizeCategory category = SizeCategory.SMALL;
+        int CATEGORIES = originalGraph.getProperty(CoreOptions.TOPDOWN_SIZE_CATEGORIES);
         
-        int childCount = originalGraph.getChildren().size();
         
-        if (childCount < CUTTOFF_SMALL) {
-            category = SizeCategory.TINY;
-        } else if (childCount >= CUTTOFF_MEDIUM) {
-            category = SizeCategory.MEDIUM;
+        if (parent != null) {
+            // 1. compute distribution of node sizes
+            int sizeMinFound = Integer.MAX_VALUE;
+            int sizeMaxFound = Integer.MIN_VALUE;
+            
+            for (ElkNode child : parent.getChildren()) {
+                int size = getGraphSize(child);
+                
+                if (size > sizeMaxFound) {
+                    sizeMaxFound = size;
+                }
+                if (size < sizeMinFound) {
+                    sizeMinFound = size;
+                }
+            }
+            
+            
+            double sizeMin = 1; // 4^0
+            double sizeMax = Math.pow(4, CATEGORIES); // minimum distribution range for K categories
+            // this serves as the middlepoint for the range
+            double averageFound = (sizeMinFound + sizeMaxFound) / 2;
+            
+            // shift distribution range if maximum is outside of default range
+            if (sizeMaxFound > sizeMax) {
+                double midFactor = Math.exp(Math.log(sizeMax) / 2);
+                sizeMin = (averageFound / midFactor);
+                sizeMax = (averageFound * midFactor);
+            }
+            
+            // 2. set cutoffs at quarter percentiles on logarithmic scale 
+            double x = (Math.log(sizeMax) - Math.log(sizeMin)) / CATEGORIES;
+            double factor = Math.exp(x);
+            
+            // 3. assign node size according to dynamic cutoffs
+            double cutoff = sizeMin * factor;
+            for (int i = 0; i < CATEGORIES; i++) {
+                if (thisGraphsSize <= cutoff) {
+                    return Math.pow(2, i);
+                } else {
+                    cutoff *= factor;
+                }
+            }
+            // largest category -- this line should be unreachable because
+            //                     the largest cutoff in the loop above should
+            //                     be exactly equal to the largest size
+            return Math.pow(2, CATEGORIES-1);
+            
+        } else {
+            return 1.0;
         }
         
-        // graphs go up one category if they have hierarchy
-        boolean hasGrandchildren = false;
+    }
+    
+    public static int getGraphSize(final ElkNode originalGraph) {
+        // nodes with hierarchy are counted with a factor of 4 (currently regardless of further details of the subgraph)
+        boolean CONSIDER_GREAT_GRANDCHILDREN = false;
+        
+        int sum = 0;
         for (ElkNode child : originalGraph.getChildren()) {
-            if (child.getChildren().size() > 0) {
-                hasGrandchildren = true;
-                break;
+            if (child.getChildren() != null && child.getChildren().size() > 0) {
+                sum += 4;
+            } else {
+                sum += 1;
+            }
+            
+            if (CONSIDER_GREAT_GRANDCHILDREN) {
+                // look down two more hierarchy levels
+                for (ElkNode grandChild : child.getChildren()) {
+                    if (grandChild.getChildren() != null && grandChild.getChildren().size() > 0) {
+                        sum += 4;
+                    } else {
+                        sum += 1;
+                    }
+                    
+                    for (ElkNode greatGrandChild : grandChild.getChildren()) {
+                        if (greatGrandChild.getChildren() != null && greatGrandChild.getChildren().size() > 0) {
+                            sum += 4;
+                        } else {
+                            sum += 1;
+                        }
+                    }
+                }
             }
         }
-        if (hasGrandchildren) {
-            category = category.nextCategory();
-        }
-        return category;
+        return sum;
     }
 
 }

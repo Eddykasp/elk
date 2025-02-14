@@ -890,22 +890,13 @@ group topdown {
         targets parents
     }
     
-    advanced option cutoffSmall: int {
-        label "Cutoff size for small graphs"
+    advanced option sizeCategories: int {
+        label "Number of size categories"
         description
-            "Defines the minimum number of nodes for a graph to be considered small. Used by the FIXED_INTEGER_RATIO_BOXES
-             size approximator."
-        default = 5
+            "Defines the number of categories to use for the FIXED_INTEGER_RATIO_BOXES size approximator."
+        default = 3
         targets parents
-    }
-    
-    advanced option cutoffMedium: int {
-        label "Cutoff size for medium graphs"
-        description
-            "Defines the minimum number of nodes for a graph to be considered medium. Used by the FIXED_INTEGER_RATIO_BOXES
-             size approximator."
-        default = 10
-        targets parents
+        requires sizeApproximator == TopdownSizeApproximator.FIXED_INTEGER_RATIO_BOXES
     }
     
     programmatic option scaleFactor: double {
