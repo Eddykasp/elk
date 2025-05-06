@@ -26,7 +26,7 @@ kind: Pod
 spec:
   containers:
   - name: maven
-    image: maven:3.6-openjdk-17
+    image: maven:3.9-eclipse-temurin-17
     command:
     - cat
     tty: true
@@ -163,7 +163,7 @@ spec:
               ]
             ],
             submoduleCfg: [],
-            userRemoteConfigs: [[url: 'https://github.com/eclipse/elk.git']]
+            userRemoteConfigs: [[url: 'https://github.com/eclipse-elk/elk.git']]
           ]
         )
 
@@ -185,7 +185,7 @@ spec:
               ]
             ],
             submoduleCfg: [],
-            userRemoteConfigs: [[url: 'https://github.com/eclipse/elk-models.git']]
+            userRemoteConfigs: [[url: 'https://github.com/eclipse-elk/elk-models.git']]
           ]
         )
       }
