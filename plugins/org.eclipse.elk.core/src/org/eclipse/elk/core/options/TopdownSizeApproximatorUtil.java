@@ -52,15 +52,13 @@ public class TopdownSizeApproximatorUtil {
             
             
             double sizeMin = 1; // 4^0
-            double sizeMax = Math.pow(4, CATEGORIES); // minimum distribution range for K categories
-            // this serves as the middlepoint for the range
-            double averageFound = (sizeMinFound + sizeMaxFound) / 2;
-            
-            // shift distribution range if maximum is outside of default range
+            // OLD dynamic max
+//            double sizeMax = Math.pow(4, CATEGORIES); // minimum distribution range for K categories
+            // new fixed max, the best value for this needs to be determined through magic (or science)
+            double sizeMax = 64;
+            // shift the range to encompass the largest graph in the local neighbourhood
             if (sizeMaxFound > sizeMax) {
-                double midFactor = Math.exp(Math.log(sizeMax) / 2);
-                sizeMin = (averageFound / midFactor);
-                sizeMax = (averageFound * midFactor);
+                sizeMax = sizeMaxFound;
             }
             
             // 2. set cutoffs at quarter percentiles on logarithmic scale 
@@ -76,9 +74,7 @@ public class TopdownSizeApproximatorUtil {
                     cutoff *= factor;
                 }
             }
-            // largest category -- this line should be unreachable because
-            //                     the largest cutoff in the loop above should
-            //                     be exactly equal to the largest size
+            // largest category
             return Math.pow(2, CATEGORIES-1);
             
         } else {
