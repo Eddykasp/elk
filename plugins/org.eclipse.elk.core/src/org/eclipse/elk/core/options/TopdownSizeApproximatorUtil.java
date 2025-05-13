@@ -51,11 +51,8 @@ public class TopdownSizeApproximatorUtil {
             }
             
             
-            double sizeMin = 1; // 4^0
-            // OLD dynamic max
-//            double sizeMax = Math.pow(4, CATEGORIES); // minimum distribution range for K categories
-            // new fixed max, the best value for this needs to be determined through magic (or science)
-            double sizeMax = 64;
+            double sizeMin = 1;
+            double sizeMax = originalGraph.getProperty(CoreOptions.TOPDOWN_SIZE_CATEGORIES_RANGE_MAX);
             // shift the range to encompass the largest graph in the local neighbourhood
             if (sizeMaxFound > sizeMax) {
                 sizeMax = sizeMaxFound;
@@ -88,9 +85,11 @@ public class TopdownSizeApproximatorUtil {
         boolean CONSIDER_GREAT_GRANDCHILDREN = false;
         
         int sum = 0;
+        
+        final int HIERARCHICAL_NODE_WEIGHT = originalGraph.getProperty(CoreOptions.TOPDOWN_SIZE_CATEGORIES_HIERARCHICAL_NODE_WEIGHT);
         for (ElkNode child : originalGraph.getChildren()) {
             if (child.getChildren() != null && child.getChildren().size() > 0) {
-                sum += 4;
+                sum += HIERARCHICAL_NODE_WEIGHT;
             } else {
                 sum += 1;
             }
@@ -99,14 +98,14 @@ public class TopdownSizeApproximatorUtil {
                 // look down two more hierarchy levels
                 for (ElkNode grandChild : child.getChildren()) {
                     if (grandChild.getChildren() != null && grandChild.getChildren().size() > 0) {
-                        sum += 4;
+                        sum += HIERARCHICAL_NODE_WEIGHT;
                     } else {
                         sum += 1;
                     }
                     
                     for (ElkNode greatGrandChild : grandChild.getChildren()) {
                         if (greatGrandChild.getChildren() != null && greatGrandChild.getChildren().size() > 0) {
-                            sum += 4;
+                            sum += HIERARCHICAL_NODE_WEIGHT;
                         } else {
                             sum += 1;
                         }
