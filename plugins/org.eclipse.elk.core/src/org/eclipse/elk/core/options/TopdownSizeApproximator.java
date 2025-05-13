@@ -14,6 +14,7 @@ import java.util.Map;
 
 import org.eclipse.elk.core.AbstractLayoutProvider;
 import org.eclipse.elk.core.data.LayoutAlgorithmData;
+import org.eclipse.elk.core.data.LayoutAlgorithmResolver;
 import org.eclipse.elk.core.math.ElkPadding;
 import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.core.util.ElkUtil;
@@ -267,6 +268,7 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
             
             // set layout to fixed layout
             originalGraph.setProperty(CoreOptions.ALGORITHM, FixedLayouterOptions.ALGORITHM_ID);
+            new LayoutAlgorithmResolver().visit(originalGraph);
             
             ElkUtil.computeChildAreaDimensions(originalGraph);
             double childAreaDesiredWidth = originalGraph.getProperty(CoreOptions.CHILD_AREA_WIDTH);
