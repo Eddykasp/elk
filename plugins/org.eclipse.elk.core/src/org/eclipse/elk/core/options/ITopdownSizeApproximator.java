@@ -13,7 +13,8 @@ import org.eclipse.elk.core.math.KVector;
 import org.eclipse.elk.graph.ElkNode;
 
 /**
- * TODO
+ * A topdown size approximator returns an estimated size of the graph drawing after performing layout using some 
+ * heuristic.
  *
  */
 public interface ITopdownSizeApproximator {

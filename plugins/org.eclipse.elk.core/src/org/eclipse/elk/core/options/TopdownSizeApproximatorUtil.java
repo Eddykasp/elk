@@ -79,15 +79,14 @@ public class TopdownSizeApproximatorUtil {
     }
     
     /**
-     * Gets the graph size by counting all nodes in a graph. Nodes with further children are counted according to the 
-     * weight defined by CoreOptions.TOPDOWN_SIZE_CATEGORIES_HIERARCHICAL_NODE_WEIGHT.
-     * 
-     * @param originalGraph
-     * @return
+     * Returns the "size" of the graph defined as the sum of the children's weights.
+     * Each simple node containing no children is counted with a weight of 1.
+     * Each node with further children is counted with a weight defined in 
+     * `CoreOptions.TOPDOWN_SIZE_CATEGORIES_HIERARCHICAL_NODE_WEIGHT`
+     * @param originalGraph the graph
+     * @return the size of the graph
      */
     public static int getGraphSize(final ElkNode originalGraph) {
-        // nodes with hierarchy are counted with a factor of 4 (currently regardless of further details of the subgraph)
-        boolean CONSIDER_GREAT_GRANDCHILDREN = false;
         
         int sum = 0;
         
@@ -97,25 +96,6 @@ public class TopdownSizeApproximatorUtil {
                 sum += HIERARCHICAL_NODE_WEIGHT;
             } else {
                 sum += 1;
-            }
-            
-            if (CONSIDER_GREAT_GRANDCHILDREN) {
-                // look down two more hierarchy levels
-                for (ElkNode grandChild : child.getChildren()) {
-                    if (grandChild.getChildren() != null && grandChild.getChildren().size() > 0) {
-                        sum += HIERARCHICAL_NODE_WEIGHT;
-                    } else {
-                        sum += 1;
-                    }
-                    
-                    for (ElkNode greatGrandChild : grandChild.getChildren()) {
-                        if (greatGrandChild.getChildren() != null && greatGrandChild.getChildren().size() > 0) {
-                            sum += HIERARCHICAL_NODE_WEIGHT;
-                        } else {
-                            sum += 1;
-                        }
-                    }
-                }
             }
         }
         return sum;
