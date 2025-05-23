@@ -22,10 +22,8 @@ public class TopdownSizeApproximatorUtil {
      * of children (with and without hierarchy) it and its siblings have. The distribution is mapped to a log scale,
      * which is divided into a number of categories that determine the multiplier.
      * 
-     * Category i => 2^i
-     * 
-     * @param originalGraph
-     * @return
+     * @param originalGraph the graph to obtain the category multiplier for
+     * @return the sidelength multiplier according to the category i.e. Category i => 2^i
      */
     public static double getSizeCategoryMultiplier(final ElkNode originalGraph) {
         ElkNode parent = originalGraph.getParent();
@@ -80,6 +78,13 @@ public class TopdownSizeApproximatorUtil {
         
     }
     
+    /**
+     * Gets the graph size by counting all nodes in a graph. Nodes with further children are counted according to the 
+     * weight defined by CoreOptions.TOPDOWN_SIZE_CATEGORIES_HIERARCHICAL_NODE_WEIGHT.
+     * 
+     * @param originalGraph
+     * @return
+     */
     public static int getGraphSize(final ElkNode originalGraph) {
         // nodes with hierarchy are counted with a factor of 4 (currently regardless of further details of the subgraph)
         boolean CONSIDER_GREAT_GRANDCHILDREN = false;
