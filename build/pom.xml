@@ -378,6 +378,11 @@
                     <groupId>org.eclipse.tycho</groupId>
                     <artifactId>tycho-compiler-plugin</artifactId>
                     <versionRange>${tycho-version}</versionRange>
+                    <configuration>
+                      <excludes>
+                        <exclude>module-info.java</exclude>
+                      </excludes>
+                    </configuration>
                     <goals>
                       <goal>compile</goal>
                       <goal>testCompile</goal>
