@@ -955,6 +955,7 @@ group layerUnzipping {
                  the existing ordering of nodes and edges after crossing minimization. The default 
                  value is 'NONE'."
             default = LayerUnzippingStrategy.NONE
+//            default = LayerUnzippingStrategy.ALTERNATING
             targets parents
         }
         
@@ -966,7 +967,8 @@ group layerUnzipping {
                  The property can be set to the nodes in a layer,
                  which then applies the property for the layer. If any node sets the value to true, then the value is
                  set to true for the entire layer."
-            default = false
+//            default = false
+            default = true
             targets nodes
             requires layerSplit == 2
         }

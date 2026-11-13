@@ -99,7 +99,7 @@ public class AlternatingLayerUnzipper implements ILayoutProcessor<LGraph> {
             // only split if there are more nodes than the resulting sub-layers
             // an alternative would be to reduce N for this layer, this may or may
             // not be desirable
-            if (graph.getLayers().get(i).getNodes().size() > N) {
+            if (graph.getLayers().get(i).getNodes().size() >= N) {
                 
                 List<Layer> subLayers = new ArrayList<>();
                 // add current layer as first sub-layer
