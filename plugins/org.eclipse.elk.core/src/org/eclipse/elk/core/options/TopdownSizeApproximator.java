@@ -40,7 +40,7 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
         @Override
         public KVector getSize(final ElkNode node) {
             double size = node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH) 
-                    * Math.sqrt(node.getChildren().size()) * 0.4;
+                    * Math.sqrt(node.getChildren().size());
             return new KVector(size, size / node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_ASPECT_RATIO));
         }
         
@@ -199,8 +199,13 @@ public enum TopdownSizeApproximator implements ITopdownSizeApproximator {
             
             // apply desired size and aspect ratio to node, capped to the set size
             double unitSize = node.getProperty(CoreOptions.TOPDOWN_HIERARCHICAL_NODE_WIDTH);
-            return new KVector(Math.min(unitSize, childAreaDesiredWidth),
-                    Math.min(unitSize/childAreaDesiredAspectRatio, childAreaDesiredHeight));
+//            return new KVector(Math.min(unitSize, childAreaDesiredWidth),
+//                    Math.min(unitSize/childAreaDesiredAspectRatio, childAreaDesiredHeight));
+            if (unitSize < childAreaDesiredWidth || unitSize/childAreaDesiredAspectRatio < childAreaDesiredHeight) {
+                return new KVector(unitSize, unitSize/childAreaDesiredAspectRatio);
+            } else {
+                return new KVector(childAreaDesiredWidth, childAreaDesiredHeight);
+            }
             
         }
     },
